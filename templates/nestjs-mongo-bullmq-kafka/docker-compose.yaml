@@ -1,0 +1,102 @@
+version: '3.8'
+services:
+  ondc-mongo:
+    image: 'mongo:latest'
+    hostname: mongo
+    container_name: mongo
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - test-network
+  zookeeper:
+    image: 'confluentinc/cp-zookeeper:latest'
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - 'zookeeper_data:/confluentinc/zookeeper/data'
+    networks:
+      - test-network
+  kafka:
+    image: 'confluentinc/cp-kafka:latest'
+    hostname: kafka
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_BROKER_ID: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_KRAFT_MODE_ENABLED: "true"
+      KAFKA_KRAFT_CLUSTER_ID: "kafka_cluster"
+    volumes:
+      - 'kafka_data:/confluentinc/kafka/data'
+    networks:
+      - test-network
+  kafka-ui:
+    image: 'provectuslabs/kafka-ui:latest'
+    hostname: kafka-ui
+    container_name: kafka-ui
+    depends_on:
+      - kafka
+    ports:
+      - '3001:8080'
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_CLUSTERS_0_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_CLUSTERS_0_SCHEMA_REGISTRY_URL=http://localhost:8081
+    networks:
+      - test-network
+  redis:
+    image: 'redis:latest'
+    hostname: redis
+    container_name: redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data/redis
+    networks:
+      - test-network
+  redis-insight:
+    image: 'redis/redisinsight:latest'
+    hostname: redis-insight
+    container_name: redis-insight
+    ports:
+      - '5540:5540'
+    depends_on:
+      - redis
+    volumes:
+      - redis_data:/data/insight
+    networks:
+      - test-network
+  test:
+    build: .
+    container_name: test
+    hostname: test
+    ports:
+      - "3030:3030"
+    networks:
+      - test-network
+    depends_on:
+      - mongo
+      - kafka-ui
+      - redis-insight
+networks:
+  test-network:
+volumes:
+  mongo_data:
+  zookeeper_data:
+  kafka_data:
+  redis_data:

@@ -1,0 +1,64 @@
+version: '3.8'
+services:
+  ondc-mongo:
+    image: 'mongo:latest'
+    hostname: mongo
+    container_name: mongo
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - test-network
+  zookeeper:
+    image: 'confluentinc/cp-zookeeper:latest'
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - 'zookeeper_data:/confluentinc/zookeeper/data'
+    networks:
+      - test-network
+  redis:
+    image: 'redis:latest'
+    hostname: redis
+    container_name: redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data/redis
+    networks:
+      - test-network
+  redis-insight:
+    image: 'redis/redisinsight:latest'
+    hostname: redis-insight
+    container_name: redis-insight
+    ports:
+      - '5540:5540'
+    depends_on:
+      - redis
+    volumes:
+      - redis_data:/data/insight
+    networks:
+      - test-network
+  test:
+    build: .
+    container_name: test
+    hostname: test
+    ports:
+      - "3030:3030"
+    networks:
+      - test-network
+    depends_on:
+      - mongo
+      - redis-insight
+networks:
+  test-network:
+volumes:
+  mongo_data:
+  zookeeper_data:
+  redis_data:

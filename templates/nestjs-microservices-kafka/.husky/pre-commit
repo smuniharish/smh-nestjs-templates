@@ -1,0 +1,13 @@
+branch="$(git rev-parse --abbrev-ref HEAD)"
+if [ "$branch" = "master" ]; then
+  echo "You can't commit directly to master branch. Please create a new branch and raise MR to Master branch."
+  exit 1
+fi
+echo "husky is running"
+echo "pulling the master branch..."
+git pull origin master
+echo "running format..."
+npm run format
+echo "running lint..."
+npm run lint
+echo "well, your code is committing to the github/gitlab ..."
